@@ -1,0 +1,336 @@
+/* 毛小孩年齡計算機轉換css優化 */
+/* ========== 全域 Reset：避免手機出現 X 軸捲動 ========== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ========== Body：背景、字體設定 ========== */
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC",
+    "PingFang TC", "Microsoft JhengHei", sans-serif;
+  line-height: 1.6;
+  color: #1f2933;
+  min-height: 100vh;
+  overflow-x: hidden;
+
+  /* 背景：漸層 + 柯基照片 */
+  background:
+    linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(252, 231, 208, 0.96)),
+    url("./D8_bac-pic.jpg") center / cover no-repeat fixed;
+}
+
+/* ========== App 容器 ========== */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  gap: 14px;
+}
+
+/* ========== Header：標題列 ========== */
+.app-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.dog-emoji {
+  font-size: 28px;
+}
+
+.app-header h1 {
+  font-size: 20px;
+  margin: 0;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: #111827;
+}
+
+/* ========== 主卡片（計算機本體） ========== */
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 20px;
+  padding: 20px 18px 22px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* 介紹文字 */
+.intro {
+  margin-top: 0;
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+/* ========== 表單 ========== */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* label + input 區塊 */
+.field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+/* 輸入框樣式 */
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1.6px solid #e5e7eb;
+  font-size: 14px;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease, transform 0.08s ease;
+}
+
+/* placeholder 顯示更柔和一點 */
+.field input::placeholder {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* focus 狀態：明確但不太刺眼 */
+.field input:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.35);
+  background-color: #fffbf5;
+  transform: translateY(-0.5px);
+}
+
+/* 輕微錯誤情境時可以加 class 使用（預留） */
+.field input.error {
+  border-color: #f97373;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.3);
+}
+
+/* 小提示文字 */
+.field-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 0;
+}
+
+/* ========== 按鈕 ========== */
+.btn-primary {
+  margin-top: 10px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.55);
+  transition: transform 0.1s ease, box-shadow 0.1s ease,
+    filter 0.12s ease, opacity 0.12s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 13px 26px rgba(249, 115, 22, 0.7);
+  transform: translateY(-1.5px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 7px 14px rgba(249, 115, 22, 0.5);
+}
+
+/* 鍵盤瀏覽者的可見 focus 樣式（👉 這是關鍵觀念：無障礙設計） */
+.btn-primary:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 3px;
+}
+
+/* ========== 結果顯示區 ========== */
+.result {
+  margin-top: 18px;
+  padding: 12px 13px 11px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 左側加一條色帶，讓區塊更有重點感 */
+.result::before {
+  content: "";
+  position: absolute;
+  inset: 0 100% 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #fb923c, #f97316);
+}
+
+/* 結果文字統一行距 */
+.result p {
+  margin: 4px 0;
+}
+
+/* 名稱加重 */
+.result .name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #b45309;
+}
+
+/* 一般提醒文字 */
+.result .note {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 錯誤訊息 */
+.result .error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* 還沒輸入時的提示 */
+.placeholder {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* ========== 公式說明區 ========== */
+.formula {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.formula h2 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.formula-expression {
+  margin: 4px 0 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.formula-note {
+  margin: 2px 0 6px;
+  color: #6b7280;
+}
+
+/* 參考連結 */
+.reference a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.reference a:hover {
+  text-decoration: underline;
+}
+
+/* ========== RWD：小螢幕優化（👉 這是關鍵觀念：RWD 響應式設計） ========== */
+@media (max-width: 480px) {
+  .app {
+    padding: 18px 12px;
+  }
+
+  .app-header {
+    transform: scale(0.96);
+  }
+
+  .card {
+    padding: 18px 14px 20px;
+  }
+
+  .intro {
+    font-size: 13px;
+  }
+}
+
+/* 平板（768px 以上） */
+@media (min-width: 768px) {
+  .app {
+    padding: 32px;
+  }
+
+  .card {
+    max-width: 640px;
+    padding: 24px 24px 26px;
+  }
+
+  .intro {
+    font-size: 15px;
+  }
+
+  .app-header h1 {
+    font-size: 22px;
+  }
+}
+
+/* 桌機（1200px 以上） */
+@media (min-width: 1200px) {
+  .app {
+    padding: 40px 0;
+  }
+
+  .card {
+    max-width: 720px;
+    padding: 28px 28px 30px;
+  }
+
+  .app-header h1 {
+    font-size: 24px;
+    letter-spacing: 0.12em;
+  }
+
+  .intro {
+    font-size: 16px;
+  }
+}
+
+/* ========== 動畫偏好：使用者如果關閉動畫，就降低動畫量 ========== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
