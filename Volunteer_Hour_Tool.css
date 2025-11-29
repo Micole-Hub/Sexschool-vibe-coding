@@ -42,6 +42,15 @@ body {
   margin-inline: auto;
 }
 
+/* 頁首顯示的 APP 圖示（可選） */
+.app-hero-icon {
+  margin-top: 1rem;
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  object-fit: cover;
+}
+
 /* 主內容 */
 
 .container {
@@ -155,6 +164,7 @@ textarea {
   .inline-fields {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
   .inline-field-group.wide {
     grid-column: 1 / -1;
   }
@@ -208,6 +218,23 @@ textarea {
   opacity: 0.92;
 }
 
+/* 小型按鈕（名單、紀錄的編輯 / 刪除） */
+
+.btn-small {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.btn-danger:hover {
+  background: #fecaca;
+}
+
 /* 志工名單 */
 
 .volunteer-list ul {
@@ -217,17 +244,13 @@ textarea {
 }
 
 .volunteer-list li {
-  font-size: 0.9rem;
-  padding: 0.25rem 0;
-  border-bottom: 1px dashed #e5e7eb;
-}
-
-/* 名單：文字＋按鈕排版 */
-.volunteer-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed #e5e7eb;
 }
 
 .volunteer-text {
@@ -243,25 +266,6 @@ textarea {
 .volunteer-actions {
   display: flex;
   gap: 0.4rem;
-}
-
-/* 小按鈕 */
-
-.btn-small {
-  padding: 0.25rem 0.7rem;
-  font-size: 0.8rem;
-  box-shadow: none;
-}
-
-/* 刪除按鈕 */
-
-.btn-danger {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.btn-danger:hover {
-  background: #fecaca;
 }
 
 /* 紀錄標題區 */
@@ -398,6 +402,7 @@ th {
 }
 
 /* 登入用：隱藏區塊 */
+
 .hidden {
   display: none;
 }
