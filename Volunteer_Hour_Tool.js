@@ -1,5 +1,5 @@
 // === 登入設定（前端假登入，每次重新開頁面都要再登入） ===
-const APP_LOGIN_PASSWORD = "dasan123"; // 你可以改成自己的密碼
+const APP_LOGIN_PASSWORD = "dasan123"; // 可以自行修改
 
 const loginSection = document.getElementById("loginSection");
 const appSection = document.getElementById("appSection");
@@ -40,7 +40,6 @@ if (loginForm) {
       return;
     }
 
-    // 密碼正確：切換到系統畫面（不記錄登入狀態，每次重開都要再登入）
     loginPasswordInput.value = "";
     showApp();
   });
@@ -61,6 +60,7 @@ const SERVICE_CONTENTS_BY_ITEM = {
   "0130": [
     { code: "0049", label: "行政支援" },
     { code: "0006", label: "資料整理" },
+    { code: "0020", label: "活動支援服務" }, // 新增的服務內容
     { code: "0028", label: "引導服務" },
     { code: "0012", label: "宣導推廣服務" },
     { code: "0017", label: "環保服務" },
@@ -72,7 +72,7 @@ const volunteers = [];
 const records = [];
 let displayMode = "readable";
 
-// localStorage key（只存志工名單）
+// 志工名單 localStorage key
 const VOLUNTEER_STORAGE_KEY = "volToolVolunteers";
 
 // DOM：志工與紀錄相關
@@ -81,6 +81,7 @@ const volunteerNameInput = document.getElementById("volunteerName");
 const volunteerIdInput = document.getElementById("volunteerId");
 const volunteerSubmitBtn = document.getElementById("volunteerSubmitBtn");
 const volunteerListEl = document.getElementById("volunteerList");
+
 const recordVolunteerSelect = document.getElementById("recordVolunteerName");
 const recordVolunteerIdInput = document.getElementById("recordVolunteerId");
 
@@ -97,14 +98,17 @@ const trafficFeeInput = document.getElementById("trafficFee");
 const mealFeeInput = document.getElementById("mealFee");
 const recordErrorEl = document.getElementById("recordError");
 const volunteerIdErrorEl = document.getElementById("volunteerIdError");
+const recordSubmitBtn = document.getElementById("recordSubmitBtn");
 
 const recordsTableBody = document.getElementById("recordsTableBody");
 const copyTableBtn = document.getElementById("copyTableBtn");
 const clearRecordsBtn = document.getElementById("clearRecordsBtn");
 const displayModeInputs = document.querySelectorAll('input[name="displayMode"]');
 
-// 志工編輯模式：null 表示目前不是在編輯
+// 志工編輯模式：null 表示不是在編輯
 let editingVolunteerIndex = null;
+// 服務紀錄編輯模式：null 表示新增，數字表示正在編輯第幾筆
+let editingRecordIndex = null;
 
 // === 工具函式 ===
 function trimValue(inputEl) {
@@ -155,13 +159,10 @@ function parseIsoDateToDate(isoDateStr) {
   return new Date(y, m - 1, d);
 }
 
-// 👉 台灣身分證「格式」驗證（只看長相：1 個英文字母 + 9 個數字）
+// 👉 台灣身分證「格式」驗證（1 個英文字母 + 9 個數字）
 function isValidTaiwanId(id) {
   if (!id) return false;
-
   id = id.toUpperCase().trim();
-
-  // 開頭 1 個 A~Z 的英文字母，後面 9 個數字
   const pattern = /^[A-Z][0-9]{9}$/;
   return pattern.test(id);
 }
@@ -291,8 +292,9 @@ function enterVolunteerEditMode(index) {
 
 function exitVolunteerEditMode() {
   editingVolunteerIndex = null;
-  volunteerNameInput.value = "";
-  volunteerIdInput.value = "";
+  if (volunteerForm) {
+    volunteerForm.reset();
+  }
   volunteerIdErrorEl.textContent = "";
 
   if (volunteerSubmitBtn) {
@@ -302,26 +304,30 @@ function exitVolunteerEditMode() {
 
 // === 受服務人次預覽 ===
 function updatePeopleCountPreview() {
-  const hours = hoursInput && hoursInput.value ? Number(hoursInput.value) : 0;
-  const minutes = minutesInput && minutesInput.value ? Number(minutesInput.value) : 0;
-  const clientCount =
-    clientCountInput && clientCountInput.value ? Number(clientCountInput.value) : 0;
-
-  const totalHours = hours + minutes / 60;
-
-  if (!clientCount || !totalHours) {
-    if (peopleCountDisplayInput) {
-      peopleCountDisplayInput.value = "";
-    }
+  if (!hoursInput || !minutesInput || !clientCountInput || !peopleCountDisplayInput) {
     return;
   }
 
+  const hours =
+    hoursInput.value !== "" ? Number(hoursInput.value) : 0;
+  const minutes =
+    minutesInput.value !== "" ? Number(minutesInput.value) : 0;
+  const clientCount =
+    clientCountInput.value !== "" ? Number(clientCountInput.value) : 0;
+
+  const totalMinutes = hours * 60 + minutes;
+
+  // 規則：總時間不能少於 30 分鐘，否則不顯示預覽
+  if (totalMinutes < 30) {
+    peopleCountDisplayInput.value = "";
+    return;
+  }
+
+  const totalHours = totalMinutes / 60;
   const rawPeopleCount = clientCount * totalHours;
   const roundedPeopleCount = Math.round(rawPeopleCount);
 
-  if (peopleCountDisplayInput) {
-    peopleCountDisplayInput.value = String(roundedPeopleCount);
-  }
+  peopleCountDisplayInput.value = String(roundedPeopleCount);
 }
 
 [hoursInput, minutesInput, clientCountInput].forEach((el) => {
@@ -365,15 +371,12 @@ if (volunteerForm) {
     }
 
     if (editingVolunteerIndex === null) {
-      // 新增
       volunteers.push({ name, id });
     } else {
-      // 編輯
       volunteers[editingVolunteerIndex].name = name;
       volunteers[editingVolunteerIndex].id = id;
     }
 
-    // 每次新增 / 修改後，存到 localStorage
     saveVolunteersToStorage();
 
     renderVolunteerList();
@@ -396,8 +399,12 @@ function renderVolunteerList() {
         ${v.name} <small>（身分證：${v.id}）</small>
       </div>
       <div class="volunteer-actions">
-        <button type="button" class="btn btn-small btn-secondary" data-action="edit">修改</button>
-        <button type="button" class="btn btn-small btn-danger" data-action="delete">刪除</button>
+        <button type="button" class="btn btn-small btn-secondary" data-action="edit">
+          修改
+        </button>
+        <button type="button" class="btn btn-small btn-danger" data-action="delete">
+          刪除
+        </button>
       </div>
     `;
 
@@ -426,8 +433,6 @@ if (volunteerListEl) {
       if (!confirmed) return;
 
       volunteers.splice(index, 1);
-
-      // 刪除後也要更新 localStorage
       saveVolunteersToStorage();
 
       renderVolunteerList();
@@ -467,7 +472,62 @@ if (recordVolunteerSelect) {
   });
 }
 
-// === 新增服務紀錄 ===
+// === 服務紀錄：編輯模式控制 ===
+function enterRecordEditMode(index) {
+  editingRecordIndex = index;
+  const r = records[index];
+
+  if (recordVolunteerSelect) {
+    recordVolunteerSelect.value = r.name;
+  }
+  if (recordVolunteerIdInput) {
+    recordVolunteerIdInput.value = r.id;
+  }
+  if (startDateInput) startDateInput.value = r.startDate;
+  if (endDateInput) endDateInput.value = r.endDate;
+
+  if (serviceItemSelect) {
+    serviceItemSelect.value = r.serviceItemCode;
+    renderServiceContentOptions(r.serviceItemCode);
+  }
+  if (serviceContentSelect) {
+    serviceContentSelect.value = r.serviceContentCode;
+  }
+
+  if (hoursInput) hoursInput.value = r.hours ?? 0;
+  if (minutesInput) minutesInput.value = r.minutes ?? 0;
+  if (clientCountInput) clientCountInput.value = r.clientCount ?? 0;
+  if (trafficFeeInput) trafficFeeInput.value = r.trafficFee ?? 0;
+  if (mealFeeInput) mealFeeInput.value = r.mealFee ?? 0;
+
+  if (recordErrorEl) recordErrorEl.textContent = "";
+  updatePeopleCountPreview();
+
+  if (recordSubmitBtn) {
+    recordSubmitBtn.textContent = "儲存修改";
+  }
+}
+
+function exitRecordEditMode() {
+  editingRecordIndex = null;
+  if (recordForm) {
+    recordForm.reset();
+  }
+  if (recordVolunteerIdInput) recordVolunteerIdInput.value = "";
+  if (peopleCountDisplayInput) peopleCountDisplayInput.value = "";
+  renderServiceContentOptions("");
+
+  if (clientCountInput) clientCountInput.value = "0";
+  if (trafficFeeInput) trafficFeeInput.value = "0";
+  if (mealFeeInput) mealFeeInput.value = "0";
+  if (recordErrorEl) recordErrorEl.textContent = "";
+
+  if (recordSubmitBtn) {
+    recordSubmitBtn.textContent = "新增服務紀錄";
+  }
+}
+
+// === 新增 / 修改 服務紀錄 ===
 if (recordForm) {
   recordForm.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -481,11 +541,10 @@ if (recordForm) {
     const serviceItemCode = serviceItemSelect.value;
     const serviceContentCode = serviceContentSelect.value;
 
-    const hours = hoursInput.value ? Number(hoursInput.value) : 0;
-    const minutes = minutesInput.value ? Number(minutesInput.value) : 0;
-    const clientCount = clientCountInput.value ? Number(clientCountInput.value) : 0;
-    const trafficFee = trafficFeeInput.value ? Number(trafficFeeInput.value) : 0;
-    const mealFee = mealFeeInput.value ? Number(mealFeeInput.value) : 0;
+    // 時數相關
+    const hoursStr = hoursInput.value.trim();
+    const minutesStr = minutesInput.value.trim();
+    const clientCountStr = clientCountInput.value.trim();
 
     if (!name) {
       recordErrorEl.textContent = "請選擇志工姓名。";
@@ -534,17 +593,50 @@ if (recordForm) {
       return;
     }
 
-    if (hours === 0 && minutes === 0) {
-      recordErrorEl.textContent = "請至少填寫服務時數（小時或分鐘）。";
+    // 小時欄位一定要填
+    if (!hoursStr) {
+      recordErrorEl.textContent = "請填寫服務小時數，若不足 1 小時請填 0 並設定分鐘。";
       return;
     }
 
-    const totalHours = hours + minutes / 60;
-    const rawPeopleCount = clientCount && totalHours ? clientCount * totalHours : 0;
+    const hours = Number(hoursStr);
+    const minutes = minutesStr ? Number(minutesStr) : 0;
+
+    if (Number.isNaN(hours) || hours < 0) {
+      recordErrorEl.textContent = "小時欄位格式有問題，請輸入大於等於 0 的數字。";
+      return;
+    }
+    if (Number.isNaN(minutes) || minutes < 0 || minutes >= 60) {
+      recordErrorEl.textContent = "分鐘欄位格式有問題，請輸入 0–59 的整數。";
+      return;
+    }
+
+    const totalMinutes = hours * 60 + minutes;
+
+    if (totalMinutes < 30) {
+      recordErrorEl.textContent = "服務時間不能少於 30 分鐘（至少 0 小時 30 分）。";
+      return;
+    }
+
+    const totalHours = totalMinutes / 60;
+
+    const clientCount = clientCountStr ? Number(clientCountStr) : 0;
+    if (Number.isNaN(clientCount) || clientCount < 0) {
+      recordErrorEl.textContent = "人數欄位格式有問題，請輸入大於等於 0 的整數。";
+      return;
+    }
+
+    const trafficFee = trafficFeeInput.value ? Number(trafficFeeInput.value) : 0;
+    const mealFee = mealFeeInput.value ? Number(mealFeeInput.value) : 0;
+
+    const rawPeopleCount = clientCount * totalHours;
     const peopleCount = Math.round(rawPeopleCount);
 
     const serviceItemLabel = getServiceItemLabel(serviceItemCode);
-    const serviceContentLabel = getServiceContentLabel(serviceItemCode, serviceContentCode);
+    const serviceContentLabel = getServiceContentLabel(
+      serviceItemCode,
+      serviceContentCode
+    );
 
     const record = {
       name,
@@ -563,16 +655,14 @@ if (recordForm) {
       mealFee,
     };
 
-    records.push(record);
+    if (editingRecordIndex === null) {
+      records.push(record);
+    } else {
+      records[editingRecordIndex] = record;
+    }
+
     renderRecordsTable();
-
-    recordForm.reset();
-    recordVolunteerIdInput.value = "";
-    peopleCountDisplayInput.value = "";
-    renderServiceContentOptions("");
-
-    trafficFeeInput.value = "0";
-    mealFeeInput.value = "0";
+    exitRecordEditMode();
   });
 }
 
@@ -582,8 +672,9 @@ function renderRecordsTable() {
 
   recordsTableBody.innerHTML = "";
 
-  records.forEach((r) => {
+  records.forEach((r, index) => {
     const tr = document.createElement("tr");
+    tr.dataset.index = String(index);
 
     const startDateDisplay =
       displayMode === "import" ? toRocDate(r.startDate) : r.startDate;
@@ -622,6 +713,16 @@ function renderRecordsTable() {
     addCell(tr, "");
     addCell(tr, "");
 
+    // 最後一欄：操作（編輯按鈕）
+    const actionTd = document.createElement("td");
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.textContent = "編輯";
+    editBtn.className = "btn btn-small btn-secondary";
+    editBtn.dataset.action = "editRecord";
+    actionTd.appendChild(editBtn);
+    tr.appendChild(actionTd);
+
     recordsTableBody.appendChild(tr);
   });
 }
@@ -632,7 +733,24 @@ function addCell(tr, value) {
   tr.appendChild(td);
 }
 
-// === 複製表格內容（只複製 tbody，不包含標題列） ===
+// 表格列上的「編輯」按鈕事件代理
+if (recordsTableBody) {
+  recordsTableBody.addEventListener("click", function (e) {
+    const button = e.target.closest("button");
+    if (!button) return;
+    if (button.dataset.action !== "editRecord") return;
+
+    const tr = button.closest("tr");
+    if (!tr) return;
+
+    const index = Number(tr.dataset.index);
+    if (Number.isNaN(index)) return;
+
+    enterRecordEditMode(index);
+  });
+}
+
+// === 複製表格內容（只複製前 17 欄，不包含「操作」欄） ===
 if (copyTableBtn) {
   copyTableBtn.addEventListener("click", function () {
     if (!recordsTableBody) return;
@@ -645,9 +763,11 @@ if (copyTableBtn) {
 
     const lines = rows.map((tr) => {
       const cells = Array.from(tr.querySelectorAll("td"));
-      return cells
+      // 只取前 17 欄（官方格式需要的欄位數）
+      const dataCells = cells.slice(0, 17);
+      return dataCells
         .map((td) => (td.textContent || "").trim())
-        .join("\t"); // 用 Tab 分隔欄位
+        .join("\t");
     });
 
     const text = lines.join("\n");
@@ -714,11 +834,11 @@ if (displayModeInputs && displayModeInputs.length > 0) {
 
 // === 初始化 ===
 renderServiceItemOptions();
-
-// 一開始先從 localStorage 把志工名單載回來，再渲染畫面
 loadVolunteersFromStorage();
 renderVolunteerList();
 renderVolunteerSelect();
 
 if (trafficFeeInput) trafficFeeInput.value = "0";
 if (mealFeeInput) mealFeeInput.value = "0";
+if (clientCountInput) clientCountInput.value = "0";
+if (peopleCountDisplayInput) peopleCountDisplayInput.value = "";
