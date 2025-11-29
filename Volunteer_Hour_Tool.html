@@ -15,8 +15,7 @@
   <header class="page-header">
     <div class="page-header-inner">
       <h1>志工時數小幫手</h1>
-      <p>協會志工服務資料登錄、檢查，並複製貼到官方匯入系統的小工具</p>
-    </div>
+      <p>協會志工服務資料登錄、檢查，並可複製貼到官方匯入系統的小工具</p>
   </header>
 
   <main class="container">
@@ -126,7 +125,7 @@
                   id="hours"
                   min="0"
                   step="1"
-                  placeholder="請輸入小時"
+                  placeholder="請輸入小時（可填 0）"
                 />
               </div>
               <div class="inline-field-group">
@@ -147,6 +146,7 @@
                   id="clientCount"
                   min="0"
                   step="1"
+                  value="0"
                   placeholder="請輸入人數"
                 />
               </div>
@@ -184,7 +184,9 @@
           </div>
 
           <div class="field-group full-width">
-            <button type="submit" class="btn primary">新增服務紀錄</button>
+            <button type="submit" class="btn primary" id="recordSubmitBtn">
+              新增服務紀錄
+            </button>
           </div>
         </form>
 
@@ -248,6 +250,7 @@
                 <th>序號</th>
                 <th>國外參與服務人次</th>
                 <th>國內參與服務人次</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody id="recordsTableBody"></tbody>
@@ -260,3 +263,4 @@
   <script src="./Volunteer_Hour_Tool.js"></script>
 </body>
 </html>
+
