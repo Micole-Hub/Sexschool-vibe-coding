@@ -53,7 +53,7 @@ table {
 }
 .header{border: 2px solid gray;}
 .logo{margin-left: 30px;}
-.content{width: 800px;height: 300px;border: 3px solid red;
+.content{border: 3px solid red;padding-bottom: 20px;
 }
 .p-text{padding-top: 20px;padding-left: 20px;padding-bottom: 20px;
 color: blue;}
