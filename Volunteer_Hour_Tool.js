@@ -1,5 +1,9 @@
+/// === Google Apps Script Web App URL（志工名單用） ===
+// ⬇⬇⬇ 只要把下面這一行的網址換成你自己的 Web App URL 就好 ⬇⬇⬇
+const GSHEET_VOLUNTEER_URL = "https://script.google.com/macros/s/AKfycbxal88OGtSpLHJ6bye8x_KUhL4KMUAN7j-xtEy3NZxkcx_MqEV52f3GtSwo3sHpUlbKpQ/exec";
+
 // === 登入設定（前端假登入，每次重新開頁面都要再登入） ===
-const APP_LOGIN_PASSWORD = "dasan123"; // 可以自行修改
+const APP_LOGIN_PASSWORD = "dasan123"; // 可自行修改密碼
 
 const loginSection = document.getElementById("loginSection");
 const appSection = document.getElementById("appSection");
@@ -72,19 +76,23 @@ const volunteers = [];
 const records = [];
 let displayMode = "readable";
 
-// 志工名單 localStorage key
+// localStorage key（志工名單）
 const VOLUNTEER_STORAGE_KEY = "volToolVolunteers";
 
-// DOM：志工與紀錄相關
+// === DOM 元素 ===
+// 志工
 const volunteerForm = document.getElementById("volunteer-form");
 const volunteerNameInput = document.getElementById("volunteerName");
 const volunteerIdInput = document.getElementById("volunteerId");
 const volunteerSubmitBtn = document.getElementById("volunteerSubmitBtn");
 const volunteerListEl = document.getElementById("volunteerList");
+const volunteerIdErrorEl = document.getElementById("volunteerIdError");
 
+// 志工下拉
 const recordVolunteerSelect = document.getElementById("recordVolunteerName");
 const recordVolunteerIdInput = document.getElementById("recordVolunteerId");
 
+// 服務紀錄表單
 const recordForm = document.getElementById("record-form");
 const startDateInput = document.getElementById("startDate");
 const endDateInput = document.getElementById("endDate");
@@ -97,18 +105,17 @@ const peopleCountDisplayInput = document.getElementById("peopleCountDisplay");
 const trafficFeeInput = document.getElementById("trafficFee");
 const mealFeeInput = document.getElementById("mealFee");
 const recordErrorEl = document.getElementById("recordError");
-const volunteerIdErrorEl = document.getElementById("volunteerIdError");
 const recordSubmitBtn = document.getElementById("recordSubmitBtn");
 
+// 表格 & 按鈕
 const recordsTableBody = document.getElementById("recordsTableBody");
 const copyTableBtn = document.getElementById("copyTableBtn");
 const clearRecordsBtn = document.getElementById("clearRecordsBtn");
 const displayModeInputs = document.querySelectorAll('input[name="displayMode"]');
 
-// 志工編輯模式：null 表示不是在編輯
-let editingVolunteerIndex = null;
-// 服務紀錄編輯模式：null 表示新增，數字表示正在編輯第幾筆
-let editingRecordIndex = null;
+// 編輯模式
+let editingVolunteerIndex = null; // 志工：null = 新增
+let editingRecordIndex = null;    // 紀錄：null = 新增
 
 // === 工具函式 ===
 function trimValue(inputEl) {
@@ -159,7 +166,7 @@ function parseIsoDateToDate(isoDateStr) {
   return new Date(y, m - 1, d);
 }
 
-// 👉 台灣身分證「格式」驗證（1 個英文字母 + 9 個數字）
+// 台灣身分證「格式」驗證（1 個英文字母 + 9 個數字）
 function isValidTaiwanId(id) {
   if (!id) return false;
   id = id.toUpperCase().trim();
@@ -196,6 +203,29 @@ function loadVolunteersFromStorage() {
     });
   } catch (e) {
     console.error("無法從 localStorage 讀取志工名單", e);
+  }
+}
+
+// === 將志工資料送到 Google Sheet（Volunteers 工作表） ===
+// vol = { name: "...", id: "..." }
+async function sendVolunteerToGSheet(vol) {
+  if (!GSHEET_VOLUNTEER_URL || GSHEET_VOLUNTEER_URL.includes("請把這裡換成你的網址")) {
+    console.warn("尚未設定 GSHEET_VOLUNTEER_URL，略過同步到 Google Sheet。");
+    return;
+  }
+
+  try {
+    // 用 no-cors 避免 CORS 問題，不讀回傳結果，只當作「通知後端」
+    await fetch(GSHEET_VOLUNTEER_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({
+        name: vol.name,
+        id: vol.id,
+      }),
+    });
+  } catch (err) {
+    console.warn("呼叫 Google Sheet Web App 失敗：", err);
   }
 }
 
@@ -248,7 +278,7 @@ if (serviceItemSelect) {
   });
 }
 
-// === 身分證輸入限制與 blur 檢查 ===
+// === 身分證輸入限制 & blur 檢查 ===
 if (volunteerIdInput) {
   volunteerIdInput.addEventListener("input", function (e) {
     let value = e.target.value.toUpperCase();
@@ -276,7 +306,7 @@ if (volunteerIdInput) {
   });
 }
 
-// === 志工編輯模式控制 ===
+// === 志工編輯模式 ===
 function enterVolunteerEditMode(index) {
   editingVolunteerIndex = index;
   const v = volunteers[index];
@@ -308,12 +338,9 @@ function updatePeopleCountPreview() {
     return;
   }
 
-  const hours =
-    hoursInput.value !== "" ? Number(hoursInput.value) : 0;
-  const minutes =
-    minutesInput.value !== "" ? Number(minutesInput.value) : 0;
-  const clientCount =
-    clientCountInput.value !== "" ? Number(clientCountInput.value) : 0;
+  const hours = hoursInput.value !== "" ? Number(hoursInput.value) : 0;
+  const minutes = minutesInput.value !== "" ? Number(minutesInput.value) : 0;
+  const clientCount = clientCountInput.value !== "" ? Number(clientCountInput.value) : 0;
 
   const totalMinutes = hours * 60 + minutes;
 
@@ -377,11 +404,16 @@ if (volunteerForm) {
       volunteers[editingVolunteerIndex].id = id;
     }
 
+    // 存到 localStorage
     saveVolunteersToStorage();
 
+    // 更新畫面
     renderVolunteerList();
     renderVolunteerSelect();
     exitVolunteerEditMode();
+
+    // 同步到 Google Sheet（備份）
+    sendVolunteerToGSheet({ name, id });
   });
 }
 
@@ -412,7 +444,7 @@ function renderVolunteerList() {
   });
 }
 
-// 志工列表事件代理：處理修改 / 刪除
+// 志工列表事件代理：修改 / 刪除
 if (volunteerListEl) {
   volunteerListEl.addEventListener("click", function (e) {
     const button = e.target.closest("button");
@@ -472,7 +504,7 @@ if (recordVolunteerSelect) {
   });
 }
 
-// === 服務紀錄：編輯模式控制 ===
+// === 服務紀錄：編輯模式 ===
 function enterRecordEditMode(index) {
   editingRecordIndex = index;
   const r = records[index];
@@ -541,7 +573,6 @@ if (recordForm) {
     const serviceItemCode = serviceItemSelect.value;
     const serviceContentCode = serviceContentSelect.value;
 
-    // 時數相關
     const hoursStr = hoursInput.value.trim();
     const minutesStr = minutesInput.value.trim();
     const clientCountStr = clientCountInput.value.trim();
@@ -593,7 +624,6 @@ if (recordForm) {
       return;
     }
 
-    // 小時欄位一定要填
     if (!hoursStr) {
       recordErrorEl.textContent = "請填寫服務小時數，若不足 1 小時請填 0 並設定分鐘。";
       return;
@@ -713,7 +743,7 @@ function renderRecordsTable() {
     addCell(tr, "");
     addCell(tr, "");
 
-    // 最後一欄：操作（編輯按鈕）
+    // 操作欄：編輯按鈕
     const actionTd = document.createElement("td");
     const editBtn = document.createElement("button");
     editBtn.type = "button";
@@ -750,7 +780,7 @@ if (recordsTableBody) {
   });
 }
 
-// === 複製表格內容（只複製前 17 欄，不包含「操作」欄） ===
+// === 複製表格內容（只複製前 17 欄，不包含操作欄） ===
 if (copyTableBtn) {
   copyTableBtn.addEventListener("click", function () {
     if (!recordsTableBody) return;
@@ -763,11 +793,10 @@ if (copyTableBtn) {
 
     const lines = rows.map((tr) => {
       const cells = Array.from(tr.querySelectorAll("td"));
-      // 只取前 17 欄（官方格式需要的欄位數）
-      const dataCells = cells.slice(0, 17);
+      const dataCells = cells.slice(0, 17); // 前 17 欄（官方欄位數）
       return dataCells
         .map((td) => (td.textContent || "").trim())
-        .join("\t");
+        .join("\t"); // 用 Tab 分隔，貼到 Excel 比較穩
     });
 
     const text = lines.join("\n");
