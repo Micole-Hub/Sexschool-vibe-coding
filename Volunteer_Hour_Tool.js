@@ -219,6 +219,49 @@ async function deleteVolunteerFromGSheet(vol) {
   }
 }
 
+// === 從 Google Sheet 載回志工名單 ===
+async function loadVolunteersFromGSheet() {
+  if (
+    !GSHEET_VOLUNTEER_URL ||
+    GSHEET_VOLUNTEER_URL.includes("請把這裡換成你的網址")
+  ) {
+    console.warn("尚未設定 GSHEET_VOLUNTEER_URL，略過從雲端載入志工名單");
+    return;
+  }
+
+  try {
+    const url = GSHEET_VOLUNTEER_URL + "?action=listVolunteers";
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.warn("從 Google Sheet 讀取志工名單失敗，HTTP 狀態：", resp.status);
+      return;
+    }
+
+    const data = await resp.json();
+    if (!data || !Array.isArray(data.volunteers)) {
+      console.warn("從 Google Sheet 回傳格式不如預期：", data);
+      return;
+    }
+
+    // 把雲端的志工名單載入到前端陣列
+    volunteers.length = 0;
+    data.volunteers.forEach((v) => {
+      if (!v) return;
+      const name = (v.name || "").toString().trim();
+      const id = (v.id || "").toString().trim();
+      if (!name || !id) return;
+      volunteers.push({ name, id });
+    });
+
+    // 更新 localStorage & 畫面
+    saveVolunteersToStorage();
+    renderVolunteerList();
+    renderVolunteerSelect();
+  } catch (err) {
+    console.warn("從 Google Sheet 讀取志工名單時發生錯誤：", err);
+  }
+}
+
 // === 登入區 ===
 function showApp() {
   if (loginSection) loginSection.classList.add("hidden");
@@ -230,7 +273,7 @@ function showLogin() {
   if (loginSection) loginSection.classList.remove("hidden");
 }
 
-// 一開始先顯示登入（如果有做登入區）
+// 一開始先顯示登入（如果有登入區）
 if (loginSection && appSection) {
   showLogin();
 }
@@ -350,15 +393,23 @@ function exitVolunteerEditMode() {
 }
 
 // === 受服務人次預覽 ===
-// 規則：總時間必須 >= 30 分鐘，才顯示預覽
+// 規則：總時間必須 >= 30 分鐘 才顯示預覽
 function updatePeopleCountPreview() {
-  if (!hoursInput || !minutesInput || !clientCountInput || !peopleCountDisplayInput) {
+  if (
+    !hoursInput ||
+    !minutesInput ||
+    !clientCountInput ||
+    !peopleCountDisplayInput
+  ) {
     return;
   }
 
-  const hours = hoursInput.value !== "" ? Number(hoursInput.value) : 0;
-  const minutes = minutesInput.value !== "" ? Number(minutesInput.value) : 0;
-  const clientCount = clientCountInput.value !== "" ? Number(clientCountInput.value) : 0;
+  const hours =
+    hoursInput.value !== "" ? Number(hoursInput.value) : 0;
+  const minutes =
+    minutesInput.value !== "" ? Number(minutesInput.value) : 0;
+  const clientCount =
+    clientCountInput.value !== "" ? Number(clientCountInput.value) : 0;
 
   const totalMinutes = hours * 60 + minutes;
 
@@ -405,7 +456,8 @@ if (volunteerForm) {
 
     // 檢查是否與其他志工重複（編輯時排除自己）
     const exists = volunteers.some((v, idx) => {
-      if (editingVolunteerIndex !== null && idx === editingVolunteerIndex) return false;
+      if (editingVolunteerIndex !== null && idx === editingVolunteerIndex)
+        return false;
       return v.id === id;
     });
 
@@ -482,11 +534,16 @@ if (volunteerListEl) {
 
       if (editingVolunteerIndex === index) {
         exitVolunteerEditMode();
-      } else if (editingVolunteerIndex !== null && editingVolunteerIndex > index) {
+      } else if (
+        editingVolunteerIndex !== null &&
+        editingVolunteerIndex > index
+      ) {
         editingVolunteerIndex -= 1;
       }
 
-      const selectedName = recordVolunteerSelect ? recordVolunteerSelect.value : "";
+      const selectedName = recordVolunteerSelect
+        ? recordVolunteerSelect.value
+        : "";
       if (selectedName === v.name) {
         if (recordVolunteerSelect) recordVolunteerSelect.value = "";
         if (recordVolunteerIdInput) recordVolunteerIdInput.value = "";
@@ -637,11 +694,13 @@ if (recordForm) {
     const minutes = minutesStr ? Number(minutesStr) : 0;
 
     if (Number.isNaN(hours) || hours < 0) {
-      recordErrorEl.textContent = "小時欄位格式有問題，請輸入大於等於 0 的整數。";
+      recordErrorEl.textContent =
+        "小時欄位格式有問題，請輸入大於等於 0 的整數。";
       return;
     }
     if (Number.isNaN(minutes) || minutes < 0 || minutes >= 60) {
-      recordErrorEl.textContent = "分鐘欄位格式有問題，請輸入 0–59 的整數。";
+      recordErrorEl.textContent =
+        "分鐘欄位格式有問題，請輸入 0–59 的整數。";
       return;
     }
 
@@ -656,7 +715,8 @@ if (recordForm) {
 
     const clientCount = clientCountStr ? Number(clientCountStr) : 0;
     if (Number.isNaN(clientCount) || clientCount < 0) {
-      recordErrorEl.textContent = "人數欄位格式有問題，請輸入大於等於 0 的整數。";
+      recordErrorEl.textContent =
+        "人數欄位格式有問題，請輸入大於等於 0 的整數。";
       return;
     }
 
@@ -752,7 +812,7 @@ function renderRecordsTable() {
     addCell(tr, ""); // 國外參與服務人次
     addCell(tr, ""); // 國內參與服務人次
 
-    // 操作欄：編輯按鈕（不列入匯入欄位）
+    // 操作欄：編輯按鈕（第 18 欄，不會被複製）
     const actionTd = document.createElement("td");
     const editBtn = document.createElement("button");
     editBtn.type = "button";
@@ -867,9 +927,14 @@ if (displayModeInputs && displayModeInputs.length > 0) {
 
 // === 初始化 ===
 renderServiceItemOptions();
+
+// 先從 localStorage 載（如果有）
 loadVolunteersFromStorage();
 renderVolunteerList();
 renderVolunteerSelect();
+
+// 再從 Google Sheet 抓最新志工名單（成功的話會覆蓋）
+loadVolunteersFromGSheet();
 
 if (trafficFeeInput) trafficFeeInput.value = "0";
 if (mealFeeInput) mealFeeInput.value = "0";
