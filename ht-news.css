@@ -1,0 +1,74 @@
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+*, *::before, *::after { box-sizing: border-box;}
+body{
+  line-height: 1.6; /* 長文閱讀常用，段落會立刻舒服很多 */
+  font-size: 16px;  /* 基準字級 */
+  color: #111;      /* 文字不要純黑也行，但先給穩定顏色 */
+  background: #fff; /* 白底，避免不同瀏覽器預設不一致 */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+}
+
+.container { max-width: 1200px; margin: 0 auto;padding: 30px 15px; }
+h1{font-size: 32px;font-weight: 600;margin-top: 20px;line-height: 1.2;max-width: 670px;}
+@media(min-width: 768px){
+	h1{font-size: 44px;}
+}
+@media(min-width: 1024px){
+	h1{font-size: 60px;}
+}
+.header-link{display: inline-block;text-decoration: none ;color: gray;}
+.header-link:hover{ text-decoration: underline;}
+.p-range{max-width: 670px;margin-top: 20px;}
+.p-range p{line-height: 1.7;margin: 15px 0 ;}
+figcaption{margin-top: 10px;color: gray;}
+.pic-link{width: 200px;margin-top: 15px;}
+.p-link{color: rgb(0, 0, 255);text-decoration: none;}
+.p-link:hover{text-decoration: underline;}
+img{max-width: 100%;height: auto;display: block;}
