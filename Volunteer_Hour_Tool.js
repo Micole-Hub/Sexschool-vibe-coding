@@ -10,7 +10,7 @@ const APP_LOGIN_PASSWORD = "dasan123"; // 你可以自行改密碼
 const VOLUNTEER_STORAGE_KEY = "volToolVolunteers";
 
 // === DOM ===
-// 登入區（若你的 HTML 沒有這些元素，程式會自動跳過，不會壞）
+// 登入區（若你的 HTML 沒有這些元素，程式會自動跳過）
 const loginSection = document.getElementById("loginSection");
 const appSection = document.getElementById("appSection");
 const loginForm = document.getElementById("loginForm");
@@ -21,9 +21,9 @@ const loginErrorEl = document.getElementById("loginError");
 const volunteerForm = document.getElementById("volunteer-form");
 const volunteerNameInput = document.getElementById("volunteerName");
 const volunteerIdInput = document.getElementById("volunteerId");
-const volunteerSubmitBtn = document.getElementById("volunteerSubmitBtn"); // 若沒有此按鈕 id，不影響
+const volunteerSubmitBtn = document.getElementById("volunteerSubmitBtn"); // 可選
 const volunteerListEl = document.getElementById("volunteerList");
-const volunteerIdErrorEl = document.getElementById("volunteerIdError"); // 若沒有此段落 id，不影響
+const volunteerIdErrorEl = document.getElementById("volunteerIdError"); // 可選
 
 // 志工下拉（服務紀錄用）
 const recordVolunteerSelect = document.getElementById("recordVolunteerName");
@@ -42,11 +42,15 @@ const peopleCountDisplayInput = document.getElementById("peopleCountDisplay");
 const trafficFeeInput = document.getElementById("trafficFee");
 const mealFeeInput = document.getElementById("mealFee");
 const recordErrorEl = document.getElementById("recordError");
-const recordSubmitBtn = document.getElementById("recordSubmitBtn"); // 若沒有此按鈕 id，不影響
+const recordSubmitBtn = document.getElementById("recordSubmitBtn"); // 可選
 
 // 表格 & 按鈕
 const recordsTableBody = document.getElementById("recordsTableBody");
-const copyTableBtn = document.getElementById("copyTableBtn"); // 你要把匯出改複製的按鈕 id 建議叫這個
+
+// ✅ 複製按鈕：優先 copyTableBtn，若你還沒改 id，也支援舊的 exportCsvBtn
+const copyTableBtn =
+  document.getElementById("copyTableBtn") || document.getElementById("exportCsvBtn");
+
 const clearRecordsBtn = document.getElementById("clearRecordsBtn");
 const displayModeInputs = document.querySelectorAll('input[name="displayMode"]');
 
@@ -74,7 +78,7 @@ const SERVICE_CONTENTS_BY_ITEM = {
   "0130": [
     { code: "0049", label: "行政支援" },
     { code: "0006", label: "資料整理" },
-    { code: "0020", label: "活動支援服務" }, // ✅ 你新增的
+    { code: "0020", label: "活動支援服務" }, // ✅ 新增
     { code: "0028", label: "引導服務" },
     { code: "0012", label: "宣導推廣服務" },
     { code: "0017", label: "環保服務" },
@@ -139,7 +143,7 @@ function isValidTaiwanId(id) {
   return /^[A-Z][0-9]{9}$/.test(id);
 }
 
-// === ✅ 新功能：開始日期鎖定結束日期同月份 ===
+// === ✅ 你要的新規則：開始日期一選，結束日期固定為「同月份最後一天」且鎖住同月 ===
 function updateEndDateConstraints() {
   if (!startDateInput || !endDateInput) return;
 
@@ -160,24 +164,14 @@ function updateEndDateConstraints() {
 
   const firstDayStr = startValue.slice(0, 7) + "-01";
   const lastDate = new Date(year, monthIndex + 1, 0); // 當月最後一天
-  const lastDayStr = lastDate.toISOString().slice(0, 10);
+  const lastDayStr = lastDate.toISOString().slice(0, 10); // YYYY-MM-DD
 
+  // 鎖定 endDate 可選範圍：只能同月份
   endDateInput.min = firstDayStr;
   endDateInput.max = lastDayStr;
 
-  // 結束日期空 → 自動帶入開始日期
-  if (!endDateInput.value) {
-    endDateInput.value = startValue;
-    return;
-  }
-
-  // 結束日期不在同月範圍 → 修正成開始日期
-  if (
-    endDateInput.value < endDateInput.min ||
-    endDateInput.value > endDateInput.max
-  ) {
-    endDateInput.value = startValue;
-  }
+  // ✅ 固定為同月份最後一天
+  endDateInput.value = lastDayStr;
 }
 
 // === localStorage：志工名單 ===
@@ -363,7 +357,7 @@ if (serviceItemSelect) {
   });
 }
 
-// === ✅ 新功能掛載：開始日期改變 → 鎖定結束日期月份 ===
+// ✅ 開始日期改變 → 結束日期固定同月最後一天 + 鎖同月
 if (startDateInput && endDateInput) {
   startDateInput.addEventListener("change", updateEndDateConstraints);
 }
@@ -383,7 +377,8 @@ if (volunteerIdInput) {
       return;
     }
     if (!isValidTaiwanId(id)) {
-      if (volunteerIdErrorEl) volunteerIdErrorEl.textContent = "身分證格式：1 英文字母 + 9 數字（例 A123456789）";
+      if (volunteerIdErrorEl)
+        volunteerIdErrorEl.textContent = "身分證格式：1 英文字母 + 9 數字（例 A123456789）";
     } else {
       if (volunteerIdErrorEl) volunteerIdErrorEl.textContent = "";
     }
@@ -445,7 +440,8 @@ if (volunteerForm) {
     }
 
     if (!isValidTaiwanId(id)) {
-      if (volunteerIdErrorEl) volunteerIdErrorEl.textContent = "身分證格式：1 英文字母 + 9 數字（例 A123456789）";
+      if (volunteerIdErrorEl)
+        volunteerIdErrorEl.textContent = "身分證格式：1 英文字母 + 9 數字（例 A123456789）";
       alert("身分證格式不正確，請確認後再新增或修改。");
       return;
     } else {
@@ -530,20 +526,17 @@ if (volunteerListEl) {
       renderVolunteerList();
       renderVolunteerSelect();
 
-      // 若剛好在編輯被刪掉那筆
       if (editingVolunteerIndex === index) {
         exitVolunteerEditMode();
       } else if (editingVolunteerIndex !== null && editingVolunteerIndex > index) {
         editingVolunteerIndex -= 1;
       }
 
-      // 若服務紀錄表單選到被刪的志工，順便清空
       if (recordVolunteerSelect && recordVolunteerSelect.value === v.name) {
         recordVolunteerSelect.value = "";
         if (recordVolunteerIdInput) recordVolunteerIdInput.value = "";
       }
 
-      // 同步刪除到 Google Sheet
       deleteVolunteerFromGSheet(v);
     }
   });
@@ -577,10 +570,13 @@ function enterRecordEditMode(index) {
   if (recordVolunteerSelect) recordVolunteerSelect.value = r.name;
   if (recordVolunteerIdInput) recordVolunteerIdInput.value = r.id;
   if (startDateInput) startDateInput.value = r.startDate;
-  if (endDateInput) endDateInput.value = r.endDate;
 
-  // ✅ 編輯時也套用「同月份鎖定」
+  // ✅ 先套用「同月最後一天」規則（會把 endDate 設為同月最後一天）
   updateEndDateConstraints();
+
+  // 如果你希望「編輯時 endDate 不要被強制變最後一天」，改成下面這兩行（擇一）
+  // if (endDateInput) endDateInput.value = r.endDate;
+  // updateEndDateConstraintsKeepRangeOnly(); //（需要另一個版本的函式）
 
   if (serviceItemSelect) {
     serviceItemSelect.value = r.serviceItemCode;
@@ -609,15 +605,14 @@ function exitRecordEditMode() {
 
   renderServiceContentOptions("");
 
-  // 預設 0
   if (clientCountInput) clientCountInput.value = "0";
   if (trafficFeeInput) trafficFeeInput.value = "0";
   if (mealFeeInput) mealFeeInput.value = "0";
   if (recordErrorEl) recordErrorEl.textContent = "";
 
-  // ✅ 開始日期清空時，解除 endDate 限制
   if (startDateInput) startDateInput.value = "";
   if (endDateInput) endDateInput.value = "";
+  // 解除 endDate 限制
   updateEndDateConstraints();
 
   if (recordSubmitBtn) recordSubmitBtn.textContent = "新增服務紀錄";
